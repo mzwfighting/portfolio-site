@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { FontLoader } from 'three/addons/loaders/FontLoader.js';
 import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
@@ -16,15 +16,6 @@ const loadPhysics = () => physicsReady ??= import('@dimforge/rapier3d-compat').t
 
 export function CoverObjects() {
   const host = useRef(null);
-  const gyro = useRef(false);
-  const [showGyro, setShowGyro] = useState(false);
-
-  const enableGyro = async () => {
-    const request = DeviceOrientationEvent.requestPermission;
-    if (request && await request.call(DeviceOrientationEvent) !== 'granted') return;
-    gyro.current = true;
-    setShowGyro(false);
-  };
 
   useEffect(() => {
     const el = host.current;
@@ -69,7 +60,6 @@ export function CoverObjects() {
         new THREE.MeshPhysicalMaterial({ color, roughness: i < 2 ? .1 : .75, metalness: .2, clearcoat: .4 })
       );
       const mobile = el.clientWidth < 640;
-      setShowGyro(mobile && typeof DeviceOrientationEvent !== 'undefined');
       const scale = mobile ? .62 : 1;
       const bodies = [...'PORTFOLIO'].map((letter, i) => {
         if (!geometries.has(letter)) {
@@ -101,8 +91,12 @@ export function CoverObjects() {
       controls.dampingFactor = .5;
       controls.rotateSpeed = .1;
       controls.minPolarAngle = controls.maxPolarAngle = Math.PI / 2;
+      cover.style.touchAction = 'pan-y';
       const guardControls = event => { controls.enabled = !event.target.closest('a, button'); };
+      const restoreControls = () => { controls.enabled = true; };
       cover.addEventListener('pointerdown', guardControls, true);
+      window.addEventListener('pointerup', restoreControls, true);
+      window.addEventListener('pointercancel', restoreControls, true);
       const raycaster = new THREE.Raycaster();
       const pointer = new THREE.Vector2();
       const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
@@ -110,15 +104,6 @@ export function CoverObjects() {
       let pointerInside = false;
       let revealed = false;
       let downX = 0, downY = 0;
-      let orientationOrigin;
-      const tilt = { x: 0, y: 0 };
-      const orientation = event => {
-        if (!gyro.current || event.beta == null || event.gamma == null) return;
-        orientationOrigin ??= { beta: event.beta, gamma: event.gamma };
-        tilt.x = (event.beta - orientationOrigin.beta) * Math.PI / 360;
-        tilt.y = -(event.gamma - orientationOrigin.gamma) * Math.PI / 360;
-      };
-      window.addEventListener('deviceorientation', orientation);
       const isInCover = event => {
         const rect = el.getBoundingClientRect();
         return event.clientX >= rect.left && event.clientX <= rect.right && event.clientY >= rect.top && event.clientY <= rect.bottom;
@@ -174,8 +159,8 @@ export function CoverObjects() {
         group.scale.setScalar(1 - scrollProgress * .5);
         group.position.y += ((revealed ? -height / 2 : 0) + scrollOffset - group.position.y) * lerp;
         group.position.z += ((revealed ? -5 : 0) - group.position.z) * lerp;
-        group.rotation.x = gyro.current ? tilt.x : Math.sin(now * .00025) * .08;
-        group.rotation.y = gyro.current ? tilt.y : Math.cos(now * .0002) * .08;
+        group.rotation.x = Math.sin(now * .00025) * .08;
+        group.rotation.y = Math.cos(now * .0002) * .08;
         group.updateMatrixWorld();
         if (pointerInside) {
           raycaster.setFromCamera(pointer, camera);
@@ -213,7 +198,8 @@ export function CoverObjects() {
         intro?.removeEventListener('pointerleave', leave);
         intro?.removeEventListener('click', click);
         window.removeEventListener('scroll', updateScrollOpacity);
-        window.removeEventListener('deviceorientation', orientation);
+        window.removeEventListener('pointerup', restoreControls, true);
+        window.removeEventListener('pointercancel', restoreControls, true);
         controls.dispose();
         cover.removeEventListener('pointerdown', guardControls, true);
         geometries.forEach(geometry => geometry.dispose());
@@ -231,6 +217,5 @@ export function CoverObjects() {
 
   return <>
     <div ref={host} className="cover-objects" data-state="floating" data-letters="PORTFOLIO" aria-hidden="true" />
-    {showGyro && <button type="button" className="cover-gyro focus-ring" onClick={() => enableGyro().catch(() => {})}>启用陀螺仪</button>}
   </>;
 }

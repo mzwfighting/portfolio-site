@@ -204,18 +204,6 @@ body:has(.project-gallery) > footer a {
 
 .cover-objects canvas { display: block; width: 100%; height: 100%; }
 
-.cover-gyro {
-  position: absolute;
-  z-index: 3;
-  bottom: 24px;
-  right: 24px;
-  border: 1px solid rgb(255 255 255 / .3);
-  border-radius: 9999px;
-  padding: 8px 14px;
-  color: #f4f4f4;
-  font-size: 12px;
-}
-
 .text-type {
   display: block;
   min-height: 2.1em;

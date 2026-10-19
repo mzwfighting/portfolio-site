@@ -26,7 +26,7 @@ export function PortfolioCover() {
         />
       </h1>
       <Link href="/#work" className="cover-enter focus-ring">
-        向下滑动
+        点击查看
       </Link>
     </section>
   );
