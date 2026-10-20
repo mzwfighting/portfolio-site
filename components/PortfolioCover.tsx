@@ -1,13 +1,11 @@
 import TextType from "./TextType";
 import Link from "next/link";
-import { CoverMusicToggle } from "./CoverMusicToggle";
 
 const coverText = ["Hello, I’m Zhi Qiu\nWelcome to my portfolio."];
 
 export function PortfolioCover() {
   return (
     <section className="universe-cover" aria-label="作品集欢迎页">
-      <CoverMusicToggle />
       <h1>
         <TextType
           text={coverText}
@@ -21,7 +19,6 @@ export function PortfolioCover() {
           variableSpeedMax={120}
           cursorBlinkDuration={0.5}
           hideCursorOnComplete
-          typingSound
         />
       </h1>
       <Link href="/#resume" className="cover-enter focus-ring">
@@ -30,3 +27,4 @@ export function PortfolioCover() {
     </section>
   );
 }
+
