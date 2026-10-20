@@ -52,6 +52,7 @@ export default function TextType({
   className = ""
 }: TextTypeProps) {
   const phrases = useMemo(() => toTextArray(text, texts), [text, texts]);
+  const typingElementRef = useRef<HTMLSpanElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const typingNoiseRef = useRef<AudioBuffer | null>(null);
   const [phraseIndex, setPhraseIndex] = useState(0);
@@ -63,6 +64,31 @@ export default function TextType({
   const shouldLoop = phrases.length > 1;
   const isComplete = !shouldLoop && !isDeleting && characterIndex === currentPhrase.length;
   const shouldShowCursor = showCursor && !(hideCursorOnComplete && isComplete);
+
+  useEffect(() => {
+    const cover = typingElementRef.current?.closest(".universe-cover");
+    if (!cover) return;
+
+    let hasObserved = false;
+    let wasVisible = false;
+    const observer = new IntersectionObserver(([entry]) => {
+      const isVisible = entry.isIntersecting && entry.intersectionRatio >= 0.5;
+      if (!hasObserved) {
+        hasObserved = true;
+        wasVisible = isVisible;
+        return;
+      }
+      if (isVisible && !wasVisible) {
+        setPhraseIndex(0);
+        setCharacterIndex(0);
+        setIsDeleting(false);
+      }
+      wasVisible = isVisible;
+    }, { threshold: 0.5 });
+
+    observer.observe(cover);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     if (!typingSound || !window.AudioContext) return;
@@ -168,6 +194,7 @@ export default function TextType({
 
   return (
     <span
+      ref={typingElementRef}
       className={`text-type ${className}`}
       data-complete={isComplete || undefined}
       style={{ "--cursor-blink-duration": `${cursorBlinkDuration}s` } as CSSProperties}
