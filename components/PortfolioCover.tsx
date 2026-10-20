@@ -21,6 +21,7 @@ export function PortfolioCover() {
           variableSpeedMax={120}
           cursorBlinkDuration={0.5}
           hideCursorOnComplete
+          typingSound
         />
       </h1>
       <Link href="/#resume" className="cover-enter focus-ring">

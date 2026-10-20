@@ -1,6 +1,6 @@
 "use client";
 
-import { type CSSProperties, useEffect, useMemo, useState } from "react";
+import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 
 type TextTypeProps = {
   text?: string | string[];
@@ -15,6 +15,7 @@ type TextTypeProps = {
   variableSpeedMax?: number;
   cursorBlinkDuration?: number;
   hideCursorOnComplete?: boolean;
+  typingSound?: boolean;
   className?: string;
 };
 
@@ -47,9 +48,12 @@ export default function TextType({
   variableSpeedMax = 120,
   cursorBlinkDuration = 0.5,
   hideCursorOnComplete = false,
+  typingSound = false,
   className = ""
 }: TextTypeProps) {
   const phrases = useMemo(() => toTextArray(text, texts), [text, texts]);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const typingNoiseRef = useRef<AudioBuffer | null>(null);
   const [phraseIndex, setPhraseIndex] = useState(0);
   const [characterIndex, setCharacterIndex] = useState(0);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -59,6 +63,32 @@ export default function TextType({
   const shouldLoop = phrases.length > 1;
   const isComplete = !shouldLoop && !isDeleting && characterIndex === currentPhrase.length;
   const shouldShowCursor = showCursor && !(hideCursorOnComplete && isComplete);
+
+  useEffect(() => {
+    if (!typingSound || !window.AudioContext) return;
+
+    const context = new AudioContext();
+    const noise = context.createBuffer(1, Math.ceil(context.sampleRate * 0.03), context.sampleRate);
+    const samples = noise.getChannelData(0);
+    for (let index = 0; index < samples.length; index += 1) samples[index] = Math.random() * 2 - 1;
+
+    audioContextRef.current = context;
+    typingNoiseRef.current = noise;
+    // shortcut: browsers keep typing audio silent until the first user gesture.
+    const unlock = () => {
+      if (context.state === "suspended") void context.resume();
+    };
+    window.addEventListener("pointerdown", unlock);
+    window.addEventListener("keydown", unlock);
+
+    return () => {
+      window.removeEventListener("pointerdown", unlock);
+      window.removeEventListener("keydown", unlock);
+      audioContextRef.current = null;
+      typingNoiseRef.current = null;
+      void context.close();
+    };
+  }, [typingSound]);
 
   useEffect(() => {
     if (phrases.length === 0) {
@@ -83,6 +113,24 @@ export default function TextType({
 
     const timeout = window.setTimeout(() => {
       if (!isDeleting && characterIndex < currentPhrase.length) {
+        if (currentPhrase[characterIndex] !== "\n") {
+          const context = audioContextRef.current;
+          const noise = typingNoiseRef.current;
+          if (context?.state === "running" && noise) {
+            const source = context.createBufferSource();
+            const filter = context.createBiquadFilter();
+            const gain = context.createGain();
+            const now = context.currentTime;
+            source.buffer = noise;
+            filter.type = "highpass";
+            filter.frequency.value = 900;
+            gain.gain.setValueAtTime(0.025, now);
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.03);
+            source.connect(filter).connect(gain).connect(context.destination);
+            source.start(now);
+            source.stop(now + 0.03);
+          }
+        }
         setCharacterIndex((index) => index + 1);
         return;
       }
