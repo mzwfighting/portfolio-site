@@ -10,7 +10,6 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
-    "@dimforge/rapier3d-compat": "^0.21.0",
     "browser": "^0.2.6",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.4.0",

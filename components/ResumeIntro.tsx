@@ -51,7 +51,7 @@ export function ResumeIntro() {
                 width={1024}
                 height={1024}
                 sizes="(min-width: 851px) 60vw, 92vw"
-                loading="eager"
+                loading="lazy"
               />
             </figure>
             <div className="resume-intro__profile-copy">

@@ -8,28 +8,20 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import fontData from '../lib/fonts/source-han-sans-cover.typeface.json';
 
-let physicsReady;
-const loadPhysics = () => physicsReady ??= import('@dimforge/rapier3d-compat').then(async ({ default: rapier }) => {
-  await rapier.init();
-  return rapier;
-});
-
 export function CoverObjects() {
   const host = useRef(null);
 
   useEffect(() => {
     const el = host.current;
     if (!el || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    let cancelled = false;
     let dispose;
 
-    async function start() {
-      const RAPIER = await loadPhysics();
-      if (cancelled) return;
+    function start() {
       const canvas = document.createElement('canvas');
       if (!canvas.getContext('webgl2', { alpha: true, antialias: true })) return;
+      const mobile = matchMedia('(max-width: 767px)').matches;
       const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
-      renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+      renderer.setPixelRatio(Math.min(devicePixelRatio, mobile ? 1 : 1.5));
       renderer.setClearColor(0x000000, 0);
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
       renderer.toneMappingExposure = 1.3;
@@ -53,13 +45,11 @@ export function CoverObjects() {
       const rim = new THREE.DirectionalLight(0xffffff, 3);
       rim.position.set(-5, 2, -4);
       scene.add(rim);
-      const world = new RAPIER.World({ x: 0, y: 0, z: 0 });
       const font = new FontLoader().parse(fontData);
       const geometries = new Map();
       const materials = [0x111111, 0xffffff, 0x111111, 0xffffff].map((color, i) =>
         new THREE.MeshPhysicalMaterial({ color, roughness: i < 2 ? .1 : .75, metalness: .2, clearcoat: .4 })
       );
-      const mobile = el.clientWidth < 640;
       const scale = mobile ? .62 : 1;
       const bodies = [...'PORTFOLIO'].map((letter, i) => {
         if (!geometries.has(letter)) {
@@ -75,15 +65,14 @@ export function CoverObjects() {
         mesh.scale.setScalar(scale);
         group.add(mesh);
         const angle = i / 9 * Math.PI * 2;
-        const body = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic()
-          .setTranslation(Math.cos(angle) * (mobile ? 1.8 : 4), Math.sin(angle) * 3, (i % 3 - 1) * 2)
-          .setLinearDamping(4).setAngularDamping(1));
-        world.createCollider(RAPIER.ColliderDesc.cuboid(.635 * scale, .635 * scale, .635 * scale).setFriction(.1), body);
-        body.setAngvel({ x: .2 * Math.sin(i), y: .25 * Math.cos(i), z: .1 }, true);
-        return { mesh, body };
+        const basePosition = new THREE.Vector3(
+          Math.cos(angle) * (mobile ? 1.8 : 4),
+          Math.sin(angle) * 3,
+          (i % 3 - 1) * 2
+        );
+        mesh.position.copy(basePosition);
+        return { mesh, basePosition, phase: i * 1.7 };
       });
-      const pointerBody = world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(20, 20, 0));
-      world.createCollider(RAPIER.ColliderDesc.ball(1), pointerBody);
       const cover = el.parentElement;
       const controls = new OrbitControls(camera, cover);
       controls.enablePan = controls.enableZoom = false;
@@ -145,15 +134,16 @@ export function CoverObjects() {
       resize();
       const observer = new ResizeObserver(resize);
       observer.observe(el);
-      const impulse = new THREE.Vector3();
-      let last = performance.now(), accumulator = 0, frame;
+      const frameInterval = mobile ? 1000 / 30 : 1000 / 45;
+      let lastFrame = 0, frame;
       const tick = now => {
-        const dt = Math.min((now - last) / 1000, .1);
-        last = now;
-        accumulator += dt;
+        frame = requestAnimationFrame(tick);
+        if (now - lastFrame < frameInterval) return;
+        const delta = Math.min((now - lastFrame) / 1000, .05);
+        lastFrame = now;
         controls.update();
         const height = 2 * 15 * Math.tan(THREE.MathUtils.degToRad(17.5 / 2));
-        const lerp = 1 - Math.pow(.9, dt * 60);
+        const lerp = 1 - Math.pow(.9, delta * 60);
         const scrollProgress = THREE.MathUtils.clamp(window.scrollY / window.innerHeight, 0, 1);
         const scrollOffset = -2 * camera.position.z * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * .3 * scrollProgress;
         group.scale.setScalar(1 - scrollProgress * .5);
@@ -162,28 +152,34 @@ export function CoverObjects() {
         group.rotation.x = Math.sin(now * .00025) * .08;
         group.rotation.y = Math.cos(now * .0002) * .08;
         group.updateMatrixWorld();
+        let pointerPoint;
         if (pointerInside) {
           raycaster.setFromCamera(pointer, camera);
           if (raycaster.ray.intersectPlane(plane, point)) {
             group.worldToLocal(point);
-            pointerBody.setNextKinematicTranslation(point);
+            pointerPoint = point;
           }
-        } else pointerBody.setNextKinematicTranslation(pointerBody.translation());
-        while (accumulator >= 1 / 60) {
-          for (const { body } of bodies) {
-            impulse.copy(body.translation()).multiplyScalar(-.2);
-            body.applyImpulse(impulse, true);
-          }
-          world.timestep = 1 / 60;
-          world.step();
-          accumulator -= 1 / 60;
         }
-        for (const { mesh, body } of bodies) {
-          mesh.position.copy(body.translation());
-          mesh.quaternion.copy(body.rotation());
+        for (const { mesh, basePosition, phase } of bodies) {
+          const drift = now * .0007 + phase;
+          mesh.position.set(
+            basePosition.x + Math.sin(drift) * .16,
+            basePosition.y + Math.cos(drift * .9) * .18,
+            basePosition.z + Math.sin(drift * .7) * .12
+          );
+          if (pointerPoint) {
+            const dx = mesh.position.x - pointerPoint.x;
+            const dy = mesh.position.y - pointerPoint.y;
+            const distance = Math.hypot(dx, dy);
+            if (distance > .001 && distance < 2.4) {
+              const push = (2.4 - distance) * .12 / distance;
+              mesh.position.x += dx * push;
+              mesh.position.y += dy * push;
+            }
+          }
+          mesh.rotation.set(Math.sin(drift * .6) * .08, Math.cos(drift * .5) * .1, Math.sin(drift * .8) * .05);
         }
         renderer.render(scene, camera);
-        frame = requestAnimationFrame(tick);
       };
       frame = requestAnimationFrame(tick);
       dispose = () => {
@@ -205,14 +201,13 @@ export function CoverObjects() {
         geometries.forEach(geometry => geometry.dispose());
         materials.forEach(material => material.dispose());
         environment.dispose();
-        world.free();
         renderer.dispose();
         renderer.forceContextLoss();
         canvas.remove();
       };
     }
     start();
-    return () => { cancelled = true; dispose?.(); };
+    return () => { dispose?.(); };
   }, []);
 
   return <>

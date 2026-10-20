@@ -224,9 +224,8 @@ export default function Galaxy({
     }
 
     let program;
-
     function resize() {
-      const scale = 0.35;
+      const scale = ctn.clientWidth < 768 ? 0.3 : 0.35;
       renderer.setSize(ctn.offsetWidth * scale, ctn.offsetHeight * scale);
       gl.canvas.style.width = '100%';
       gl.canvas.style.height = '100%';
@@ -278,7 +277,8 @@ export default function Galaxy({
 
     function update(t) {
       animateId = requestAnimationFrame(update);
-      if (t - lastRenderTime < 1000 / 30) return;
+      const frameInterval = ctn.clientWidth < 768 ? 1000 / 24 : 1000 / 30;
+      if (t - lastRenderTime < frameInterval) return;
       lastRenderTime = t;
       if (!disableAnimation) {
         program.uniforms.uTime.value = t * 0.001;
