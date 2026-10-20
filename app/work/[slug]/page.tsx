@@ -41,7 +41,7 @@ export default async function ProjectPage({ params }: PageProps) {
   }
 
   const sectionImages = project.sections.flatMap((section) => section.images);
-  const cover = sectionImages.find((image) => image.src.endsWith("/封面.png")) ?? project.cover;
+  const cover = sectionImages.find((image) => image.src.endsWith("/封面.webp")) ?? project.cover;
   const images = (project.gallery ?? [cover, ...sectionImages])
     .filter((image, index, all) => all.findIndex((item) => item.src === image.src) === index)
     .sort((a, b) =>

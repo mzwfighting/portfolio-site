@@ -41,7 +41,7 @@ const asset = (
   alt: string,
   use: string
 ): ImageAsset => ({
-  src: publicPath(`/assets/${folder}/${name}`),
+  src: publicPath(`/assets/${folder}/${name.replace(/\.png$/i, ".webp")}`),
   width,
   height,
   alt,
