@@ -78,7 +78,7 @@ export function CoverObjects() {
       controls.enablePan = controls.enableZoom = false;
       controls.enableDamping = true;
       controls.dampingFactor = .5;
-      controls.rotateSpeed = .1;
+      controls.rotateSpeed = mobile ? .1 : .25;
       controls.minPolarAngle = controls.maxPolarAngle = Math.PI / 2;
       cover.style.touchAction = 'pan-y';
       const guardControls = event => { controls.enabled = !event.target.closest('a, button'); };
@@ -88,7 +88,8 @@ export function CoverObjects() {
       window.addEventListener('pointercancel', restoreControls, true);
       const raycaster = new THREE.Raycaster();
       const pointer = new THREE.Vector2();
-      const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
+      const plane = new THREE.Plane();
+      const pointerNormal = new THREE.Vector3();
       const point = new THREE.Vector3();
       let pointerInside = false;
       let revealed = false;
@@ -155,6 +156,7 @@ export function CoverObjects() {
         let pointerPoint;
         if (pointerInside) {
           raycaster.setFromCamera(pointer, camera);
+          plane.setFromNormalAndCoplanarPoint(camera.getWorldDirection(pointerNormal), group.position);
           if (raycaster.ray.intersectPlane(plane, point)) {
             group.worldToLocal(point);
             pointerPoint = point;
@@ -171,8 +173,8 @@ export function CoverObjects() {
             const dx = mesh.position.x - pointerPoint.x;
             const dy = mesh.position.y - pointerPoint.y;
             const distance = Math.hypot(dx, dy);
-            if (distance > .001 && distance < 2.4) {
-              const push = (2.4 - distance) * .12 / distance;
+            if (distance > .001 && distance < 3) {
+              const push = (3 - distance) * .42 / distance;
               mesh.position.x += dx * push;
               mesh.position.y += dy * push;
             }
@@ -214,3 +216,4 @@ export function CoverObjects() {
     <div ref={host} className="cover-objects" data-state="floating" data-letters="PORTFOLIO" aria-hidden="true" />
   </>;
 }
+
