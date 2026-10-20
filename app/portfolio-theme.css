@@ -162,7 +162,7 @@ body:has(.project-gallery) > .editorial-footer { background: transparent; color:
 body:has(.project-gallery) .editorial-footer-intro p { color: #f1f1f1; }
 
 @media (max-width: 767px) {
-  html { scroll-snap-type: none; }
+  html { scroll-behavior: auto; scroll-snap-type: none; }
   .universe-cover h1 { color: #fff; font-size: clamp(36px, 11vw, 46px); font-weight: 500; text-shadow: 0 2px 12px #000, 0 0 20px rgb(0 0 0 / .9); -webkit-text-stroke: .35px rgb(0 0 0 / .8); -webkit-text-fill-color: #fff; }
   #work .home-project-summaries .editorial-project { display: flex; min-height: 0; flex-direction: column; gap: 24px; padding-block: 32px; }
   #work .home-project-summaries .editorial-project-media { order: -1; }
@@ -242,3 +242,4 @@ body:has(.project-gallery) .editorial-footer-intro p { color: #f1f1f1; }
   .editorial-detail-hero { padding-bottom: 40px; }
   .project-gallery > .site-max > .grid { gap: 16px; }
 }
+
