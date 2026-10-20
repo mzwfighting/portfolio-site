@@ -195,15 +195,6 @@ body:has(.project-gallery) > footer a {
   pointer-events: none;
 }
 
-.cover-objects {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  pointer-events: none;
-}
-
-.cover-objects canvas { display: block; width: 100%; height: 100%; }
-
 .text-type {
   display: block;
   min-height: 2.1em;

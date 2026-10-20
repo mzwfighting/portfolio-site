@@ -1,6 +1,5 @@
 import TextType from "./TextType";
 import Link from "next/link";
-import { CoverObjects } from "./CoverObjects";
 import { CoverMusicToggle } from "./CoverMusicToggle";
 
 const coverText = ["Hello, I’m Zhi Qiu\nWelcome to my portfolio."];
@@ -8,7 +7,6 @@ const coverText = ["Hello, I’m Zhi Qiu\nWelcome to my portfolio."];
 export function PortfolioCover() {
   return (
     <section className="universe-cover" aria-label="作品集欢迎页">
-      <CoverObjects />
       <CoverMusicToggle />
       <h1>
         <TextType
@@ -25,7 +23,7 @@ export function PortfolioCover() {
           hideCursorOnComplete
         />
       </h1>
-      <Link href="/#work" className="cover-enter focus-ring">
+      <Link href="/#resume" className="cover-enter focus-ring">
         点击查看
       </Link>
     </section>
